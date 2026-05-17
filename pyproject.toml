@@ -10,4 +10,5 @@ dependencies = [
     "matplotlib>=3.10.9",
     "pandas>=3.0.2",
     "plotly>=6.7.0",
+    "pyarrow>=24.0.0",
 ]

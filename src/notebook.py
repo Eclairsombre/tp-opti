@@ -1,7 +1,10 @@
 import marimo
 
 __generated_with = "0.23.5"
-app = marimo.App(width="medium")
+app = marimo.App(
+    width="columns",
+    app_title="Projet - Vehicule ROuting Problem with Time Windows",
+)
 
 with app.setup:
     import glob
@@ -14,8 +17,16 @@ with app.setup:
     from algorithms import greedy_solution, random_solution
     from model import VRPTWInstance
     from parsing import parse_vrp_file
-    from utils import solution_total_violation, total_distance
+    from utils import min_vehicles_lower_bound, solution_total_violation, total_distance
     from visualisation import plot_routes_interactive
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    # Jeu de données
+    """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -50,11 +61,93 @@ def _():
     return (datasets,)
 
 
+@app.cell
+def _():
+    mo.md(r"""
+    ## Nombre minimum de véhicules à utiliser
+
+    La borne inférieure est :
+
+    $$V_{min} = \left\lceil \frac{\sum_{i=1}^{n} q_i}{C} \right\rceil$$
+
+    avec $n$ le nombre de clients, $q_i$ la demande du client $i$ et $C$ la capacité du véhicule.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(datasets):
+    def _():
+        rows = []
+
+        for name, data in datasets.items():
+            inst = VRPTWInstance(data)
+            total_q = sum(c["demand"] for c in inst.clients)
+
+            rows.append(
+                {
+                    "Données": name,
+                    "Clients": inst.n,
+                    "Capacité": inst.capacity,
+                    "Demande": total_q,
+                    "Nombre minimum de véhicules": min_vehicles_lower_bound(inst),
+                }
+            )
+
+        df = pd.DataFrame(rows).sort_values("Nombre minimum de véhicules")
+
+        chart = (
+            alt.Chart(df)
+            .mark_bar()
+            .encode(
+                x=alt.X("Données:N", sort=None),
+                y="Nombre minimum de véhicules:Q",
+                tooltip=list(df.columns),
+            )
+            .properties(
+                title="Nombre minimum de véhicules par jeux de données",
+                width=700,
+                height=400,
+            )
+        )
+
+        labels = (
+            alt.Chart(df)
+            .mark_text(
+                dy=-8,
+                fontSize=11,
+                fontWeight="bold",
+            )
+            .encode(
+                x="Données:N",
+                y="Nombre minimum de véhicules:Q",
+                text="Nombre minimum de véhicules:Q",
+            )
+        )
+        return mo.vstack(
+            [
+                mo.md("## Nombre minimum de véhicules"),
+                mo.ui.altair_chart(chart + labels),
+            ]
+        )
+
+    _()
+    return
+
+
 @app.cell(hide_code=True)
 def _(datasets):
     dataset = mo.ui.dropdown(options=datasets)
     time_windows = mo.ui.dropdown(options=[True, False])
     return dataset, time_windows
+
+
+@app.cell(hide_code=True)
+def _():
+    mo.md(r"""
+    # Analyse sur un jeu de donnée
+    """)
+    return
 
 
 @app.cell
@@ -74,7 +167,7 @@ def _(dataset):
 
     mo.vstack(
         [
-            mo.md("## Clients du dataset sélectionné"),
+            mo.md("## Clients du jeu de donnée sélectionné"),
             mo.ui.table(clients_df),
         ]
     )
@@ -106,7 +199,7 @@ def _():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(instance, time_windows):
     sol_rand = random_solution(instance, check_tw=time_windows.value)
 
@@ -127,7 +220,7 @@ def _(instance, time_windows):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(instance, time_windows):
     sol_greedy = greedy_solution(instance, check_tw=time_windows.value)
 
@@ -137,9 +230,9 @@ def _(instance, time_windows):
         f"Violation Time Windows : {solution_total_violation(sol_greedy, instance):.2f}"
     )
 
-    fig_greedy = plot_routes_interactive(sol_greedy, instance, "Solution greedy")
+    fig_greedy = plot_routes_interactive(sol_greedy, instance, "Solution gloutonne")
 
-    mo.vstack([mo.md("## Visualisation solution Greedy"), mo.ui.plotly(fig_greedy)])
+    mo.vstack([mo.md("## Visualisation solution gloutonne"), mo.ui.plotly(fig_greedy)])
     return
 
 
