@@ -11,13 +11,14 @@ with app.setup:
     import marimo as mo
     import pandas as pd
 
-    from tp_opti.algorithms import greedy_solution, random_solution
+    from tp_opti.algorithms import greedy_solution, random_solution, simulated_annealing
     from tp_opti.model import VRPTWInstance
     from tp_opti.parsing import parse_vrp_file
     from tp_opti.utils.validators import (
         min_vehicles_lower_bound,
         solution_total_violation,
         total_distance,
+        solution_is_valid
     )
     from tp_opti.visualisation import plot_routes_interactive
 
@@ -234,6 +235,38 @@ def _(instance, time_windows):
     fig_greedy = plot_routes_interactive(sol_greedy, instance, "Solution gloutonne")
 
     mo.vstack([mo.md("## Visualisation solution gloutonne"), mo.ui.plotly(fig_greedy)])
+    return
+
+
+@app.cell(hide_code=True)
+def _(instance, time_windows):
+    result_sa = simulated_annealing(
+        instance,
+        check_tw=time_windows.value,
+        T0=500,
+        alpha=0.995,
+        max_iter=5000,
+        seed=42,
+    )
+
+    print(f"  Distance: {result_sa['distance']:.2f}")
+    print(f"  Violation Time Windows : {result_sa['violation']:.4f}")
+    print(f"  Routes : {result_sa['num_routes']}")
+    print(f"  Temps : {result_sa['time']:.2f}s")
+    print(f"  Solutions générées : {result_sa['nb_generated']}")
+    print(f"  Solutions acceptées: {result_sa['nb_accepted']}")
+    print(
+        f"  Valide : {solution_is_valid(result_sa['solution'], instance, check_tw=time_windows.value)}"
+    )
+
+    fig_sa = plot_routes_interactive(result_sa["solution"], instance, "Solution recuit-simulé")
+
+    mo.vstack(
+        [
+            mo.md("## Visualisation solution recuit-simulé"),
+            mo.ui.plotly(fig_sa),
+        ]
+    )
     return
 
 
