@@ -1,7 +1,7 @@
 import random
 
-from model import Route, Solution, VRPTWInstance
-from utils import (
+from tp_opti.model import Route, Solution, VRPTWInstance
+from tp_opti.utils.validators import (
     route_distance,
     route_time_ok,
 )

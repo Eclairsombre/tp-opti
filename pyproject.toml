@@ -1,7 +1,7 @@
 [project]
 name = "tp-opti"
 version = "0.1.0"
-description = "Add your description here"
+description = "Vehicle Routing Probel with Time Windows"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -11,4 +11,20 @@ dependencies = [
     "pandas>=3.0.2",
     "plotly>=6.7.0",
     "pyarrow>=24.0.0",
+]
+
+[tool.marimo.runtime]
+pythonpath = ["src"]
+
+[tool.uv.workspace]
+members = [
+    ".",
+]
+
+[tool.uv.sources]
+tp-opti = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "tp-opti",
 ]

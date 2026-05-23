@@ -15,5 +15,5 @@ uv run jupyter lab
 Pour lancer le projet avec Marimo:
 
 ```bash
-marimo edit src/notebook.py --watch
+marimo edit notebooks/operators.py --watch
 ```

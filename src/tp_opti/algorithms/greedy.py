@@ -1,6 +1,6 @@
 import random
 
-from model import Route, Solution, VRPTWInstance
+from tp_opti.model import Route, Solution, VRPTWInstance
 
 
 def greedy_solution(

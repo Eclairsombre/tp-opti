@@ -1,6 +1,6 @@
 import math
 
-from model import Route, Solution, VRPTWInstance
+from tp_opti.model import Route, Solution, VRPTWInstance
 
 
 def min_vehicles_lower_bound(inst):

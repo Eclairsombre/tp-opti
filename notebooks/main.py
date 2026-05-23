@@ -1,10 +1,7 @@
 import marimo
 
 __generated_with = "0.23.5"
-app = marimo.App(
-    width="columns",
-    app_title="Projet - Vehicule ROuting Problem with Time Windows",
-)
+app = marimo.App(width="columns", app_title="VRPTW - Main")
 
 with app.setup:
     import glob
@@ -14,11 +11,15 @@ with app.setup:
     import marimo as mo
     import pandas as pd
 
-    from algorithms import greedy_solution, random_solution
-    from model import VRPTWInstance
-    from parsing import parse_vrp_file
-    from utils import min_vehicles_lower_bound, solution_total_violation, total_distance
-    from visualisation import plot_routes_interactive
+    from tp_opti.algorithms import greedy_solution, random_solution
+    from tp_opti.model import VRPTWInstance
+    from tp_opti.parsing import parse_vrp_file
+    from tp_opti.utils.validators import (
+        min_vehicles_lower_bound,
+        solution_total_violation,
+        total_distance,
+    )
+    from tp_opti.visualisation import plot_routes_interactive
 
 
 @app.cell(hide_code=True)

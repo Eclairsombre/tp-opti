@@ -1,0 +1,16 @@
+NAME: minimal.vrp
+COMMENT:
+TYPE: vrptw
+COORDINATES: cartesian
+NB_DEPOTS: 1
+NB_CLIENTS: 4
+MAX_QUANTITY: 4
+
+DATA_DEPOTS [idName x y readyTime dueTime]:
+d1 50 50 0 500
+
+DATA_CLIENTS [idName x y readyTime dueTime demand service]:
+c1 25 25 0 500 1 10
+c3 75 75 0 500 1 10
+c4 25 75 0 500 1 10
+c2 75 25 0 500 1 10
