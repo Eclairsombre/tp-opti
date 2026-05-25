@@ -1,3 +1,5 @@
+import random
+
 from tp_opti.model import Route, Solution, VRPTWInstance
 from tp_opti.utils.validators import penalized_cost, route_capacity_ok, total_distance
 
@@ -132,12 +134,13 @@ def swap(sol: Solution, inst: VRPTWInstance, check_tw: bool = True) -> Solution:
     return best_sol
 
 
-def random_neighbor(
-    sol: Solution, inst: VRPTWInstance, rng, check_tw: bool = True
+def neighbor_operator(
+    sol: Solution, inst: VRPTWInstance, op, check_tw: bool = True
 ) -> Solution:
     """
-    Génère un voisin aléatoire en appliquant un opérateur aléatoire.
+    Génère un voisin aléatoire en appliquant un opérateur parmi ["2opt", "relocate", "swap"]
     """
+    rng = random.Random()
     op = rng.choice(["2opt", "relocate", "swap"])
     new_sol = sol.copy()
 

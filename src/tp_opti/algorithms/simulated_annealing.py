@@ -5,8 +5,8 @@ import time
 from tp_opti.algorithms.greedy import greedy_solution
 from tp_opti.model import Solution, VRPTWInstance
 from tp_opti.utils.operators import (
+    neighbor_operator,
     penalized_cost,
-    random_neighbor,
     total_distance,
 )
 from tp_opti.utils.validators import solution_total_violation
@@ -19,17 +19,19 @@ def simulated_annealing(
     alpha: float = 0.995,
     max_iter: int = 10000,
     seed: int = 25565,
+    op: str = "2opt",
 ) -> dict:
     """
     Recuit Simulé pour le VRPTW.
 
     Paramètres :
-      - inst     : instance VRPTW
+      - inst : instance VRPTW
       - check_tw : prendre en compte les fenêtres de temps
-      - T0       : température initiale
-      - alpha    : facteur de refroidissement (0 < alpha < 1)
+      - T0 : température initiale
+      - alpha : facteur de refroidissement (0 < alpha < 1)
       - max_iter : nombre max d'itérations
-      - seed     : graine aléatoire
+      - seed : graine aléatoire
+      - op : opérateur de voisinage parmi ["2opt", "relocate", "swap"]
 
     Retourne un dict avec la meilleure solution, historique de convergence, etc.
     """
@@ -53,7 +55,7 @@ def simulated_annealing(
     start = time.time()
 
     for it in range(max_iter):
-        neighbor: Solution = random_neighbor(current, inst, rng, check_tw=check_tw)
+        neighbor: Solution = neighbor_operator(current, inst, op, check_tw=check_tw)
         neighbor_cost = (
             penalized_cost(neighbor, inst)
             if check_tw

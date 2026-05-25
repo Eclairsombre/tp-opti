@@ -5,8 +5,8 @@ from tp_opti.algorithms.greedy import greedy_solution
 from tp_opti.algorithms.random import random_solution
 from tp_opti.model import Route, Solution, VRPTWInstance
 from tp_opti.utils.operators import (
+    neighbor_operator,
     penalized_cost,
-    random_neighbor,
     total_distance,
 )
 from tp_opti.utils.validators import solution_total_violation
@@ -105,12 +105,12 @@ def ox_crossover(
 
 
 def mutate(
-    sol: Solution, inst: VRPTWInstance, rng, mutation_rate: float = 0.1
+    sol: Solution, inst: VRPTWInstance, op, rng, mutation_rate: float = 0.1
 ) -> Solution:
     """Mutation : relocate aléatoire d'un client."""
     if rng.random() > mutation_rate:
         return sol
-    return random_neighbor(sol, inst, rng, check_tw=False)
+    return neighbor_operator(sol, inst, op, check_tw=False)
 
 
 def tournament_select(population: list, fitnesses: list, k: int, rng) -> Solution:
@@ -129,17 +129,22 @@ def genetic_algorithm(
     mutation_rate: float = 0.2,
     elite_size: int = 2,
     seed: int = 42,
+    op_mutate: str = "2opt",
+    op_cross: str = "2opt",
 ) -> dict:
     """
     Algorithme Génétique pour le VRPTW.
 
     Paramètres :
+      - check_tw    : prendre en compte les fenêtres de temps
       - pop_size    : taille de la population
       - generations : nombre de générations
       - tournament_k: taille du tournoi de sélection
       - mutation_rate: probabilité de mutation
       - elite_size  : nombre d'élites conservées par génération
-      - check_tw    : prendre en compte les fenêtres de temps
+      - seed : seed pour la génération aléatoire
+      - op_mutate : opérateur de voisinage pour la mutation parmi ["2opt", "relocate", "swap"]
+      - op_cross : opérateur de voisinage pour le croisement parmi ["ox"]
     """
     rng = random.Random(seed)
 
@@ -173,7 +178,7 @@ def genetic_algorithm(
             p1 = tournament_select(population, fitnesses, tournament_k, rng)
             p2 = tournament_select(population, fitnesses, tournament_k, rng)
             child = ox_crossover(p1, p2, inst, rng)
-            child = mutate(child, inst, rng, mutation_rate)
+            child = mutate(child, inst, op_mutate, rng, mutation_rate)
             f = fitness(child)
             new_pop.append(child)
             new_fits.append(f)

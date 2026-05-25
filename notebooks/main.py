@@ -289,11 +289,11 @@ def _(instance, time_windows):
         f"  Valide : {solution_is_valid(result_genetic['solution'], instance, check_tw=time_windows.value)}"
     )
 
-    fig_genetic = plot_routes_interactive(result_genetic["solution"], instance, "Solution recuit-simulé")
+    fig_genetic = plot_routes_interactive(result_genetic["solution"], instance, "Solution algorithme génétique")
 
     mo.vstack(
         [
-            mo.md("## Visualisation solution recuit-simulé"),
+            mo.md("## Visualisation solution algorithme génétique"),
             mo.ui.plotly(fig_genetic),
         ]
     )
