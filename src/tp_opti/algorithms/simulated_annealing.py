@@ -6,10 +6,12 @@ from tp_opti.algorithms.greedy import greedy_solution
 from tp_opti.model import Solution, VRPTWInstance
 from tp_opti.utils.operators import (
     neighbor_operator,
+)
+from tp_opti.utils.validators import (
     penalized_cost,
+    solution_total_violation,
     total_distance,
 )
-from tp_opti.utils.validators import solution_total_violation
 
 
 def simulated_annealing(
@@ -55,7 +57,9 @@ def simulated_annealing(
     start = time.time()
 
     for it in range(max_iter):
-        neighbor: Solution = neighbor_operator(current, inst, op, check_tw=check_tw)
+        neighbor: Solution = neighbor_operator(
+            current, inst, rng, op, check_tw=check_tw
+        )
         neighbor_cost = (
             penalized_cost(neighbor, inst)
             if check_tw

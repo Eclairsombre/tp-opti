@@ -6,10 +6,13 @@ from tp_opti.algorithms.random import random_solution
 from tp_opti.model import Route, Solution, VRPTWInstance
 from tp_opti.utils.operators import (
     neighbor_operator,
+    ox_crossover,
+)
+from tp_opti.utils.validators import (
     penalized_cost,
+    solution_total_violation,
     total_distance,
 )
-from tp_opti.utils.validators import solution_total_violation
 
 
 def sol_to_chromosome(sol: Solution) -> list:
@@ -53,64 +56,13 @@ def chromosome_to_sol(chrom: list, inst: VRPTWInstance) -> Solution:
     return Solution([r for r in routes if r.clients])
 
 
-def ox_crossover(
-    parent1: Solution, parent2: Solution, inst: VRPTWInstance, rng
-) -> Solution:
-    """
-    OX Crossover (Order Crossover) adapté au VRP.
-    Travaille sur la séquence de clients (sans les séparateurs).
-    """
-    clients_p1 = parent1.all_clients()
-    clients_p2 = parent2.all_clients()
-    n = len(clients_p1)
-
-    if n < 2:
-        return parent1.copy()
-
-    # Sélectionner un segment de p1
-    i, j = sorted(rng.sample(range(n), 2))
-
-    child_clients = [None] * n
-    child_clients[i : j + 1] = clients_p1[i : j + 1]
-    segment_set = set(clients_p1[i : j + 1])
-
-    # Remplir avec p2 dans l'ordre
-    remaining = [c for c in clients_p2 if c not in segment_set]
-    pos = 0
-    for k in range(n):
-        if child_clients[k] is None:
-            child_clients[k] = remaining[pos]
-            pos += 1
-
-    # Reconstruire les routes avec contrainte de capacité
-    routes = []
-    current_clients = []
-    current_load = 0
-
-    for cid in child_clients:
-        demand = inst.nodes[cid]["demand"]
-        if current_load + demand > inst.capacity:
-            if current_clients:
-                routes.append(Route(current_clients))
-            current_clients = [cid]
-            current_load = demand
-        else:
-            current_clients.append(cid)
-            current_load += demand
-
-    if current_clients:
-        routes.append(Route(current_clients))
-
-    return Solution(routes)
-
-
 def mutate(
-    sol: Solution, inst: VRPTWInstance, op, rng, mutation_rate: float = 0.1
+    sol: Solution, inst: VRPTWInstance, rng, op, mutation_rate: float = 0.1
 ) -> Solution:
     """Mutation : relocate aléatoire d'un client."""
     if rng.random() > mutation_rate:
         return sol
-    return neighbor_operator(sol, inst, op, check_tw=False)
+    return neighbor_operator(sol, inst, rng, op, check_tw=False)
 
 
 def tournament_select(population: list, fitnesses: list, k: int, rng) -> Solution:
@@ -128,7 +80,7 @@ def genetic_algorithm(
     tournament_k: int = 5,
     mutation_rate: float = 0.2,
     elite_size: int = 2,
-    seed: int = 42,
+    seed: int = 25565,
     op_mutate: str = "2opt",
     op_cross: str = "2opt",
 ) -> dict:
@@ -178,7 +130,7 @@ def genetic_algorithm(
             p1 = tournament_select(population, fitnesses, tournament_k, rng)
             p2 = tournament_select(population, fitnesses, tournament_k, rng)
             child = ox_crossover(p1, p2, inst, rng)
-            child = mutate(child, inst, op_mutate, rng, mutation_rate)
+            child = mutate(child, inst, rng, op_mutate, mutation_rate)
             f = fitness(child)
             new_pop.append(child)
             new_fits.append(f)

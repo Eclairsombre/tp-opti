@@ -16,7 +16,7 @@ with app.setup:
     from tp_opti.model import VRPTWInstance
     from tp_opti.parsing import parse_vrp_file
     from tp_opti.utils.operators import (
-        random_neighbor,
+        neighbor_operator,
         relocate,
         swap,
         two_opt_intra,
@@ -112,10 +112,9 @@ def _(initial_solution, instance):
 def _():
     operator_dropdown = mo.ui.dropdown(
             options={
-                "two_opt_intra": "two_opt_intra",
+                "two_opt_intra": "2opt",
                 "relocate": "relocate",
                 "swap": "swap",
-                "random_neighbor": "random_neighbor",
             },
             value="two_opt_intra"
         )
@@ -133,38 +132,9 @@ def _(operator_dropdown):
 @app.cell(hide_code=True)
 def _(initial_solution, instance, operator_dropdown, time_windows):
     operator_name = operator_dropdown.value
+    rng = random.Random()
 
-    if operator_name == "two_opt_intra":
-        new_solution = two_opt_intra(
-            initial_solution,
-            instance,
-            check_tw=time_windows.value,
-        )
-
-    elif operator_name == "relocate":
-        new_solution = relocate(
-            initial_solution,
-            instance,
-            check_tw=time_windows.value,
-        )
-
-    elif operator_name == "swap":
-        new_solution = swap(
-            initial_solution,
-            instance,
-            check_tw=time_windows.value,
-        )
-
-    elif operator_name == "random_neighbor":
-        new_solution = random_neighbor(
-            initial_solution,
-            instance,
-            rng=random.Random(25565),
-            check_tw=time_windows.value,
-        )
-
-    else:
-        new_solution = initial_solution
+    new_solution = neighbor_operator(initial_solution, instance, rng, op=operator_name, check_tw=time_windows.value)
     return (new_solution,)
 
 

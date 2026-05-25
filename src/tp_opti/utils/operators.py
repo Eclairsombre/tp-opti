@@ -1,209 +1,305 @@
-import random
-
 from tp_opti.model import Route, Solution, VRPTWInstance
-from tp_opti.utils.validators import penalized_cost, route_capacity_ok, total_distance
 
 
 def two_opt_intra(
-    sol: Solution, inst: VRPTWInstance, check_tw: bool = True
+    sol: Solution, inst: VRPTWInstance, rng, check_tw: bool = True
 ) -> Solution:
     """
-    2-opt intra-route : inverse un segment [i..j] dans une route.
-    Retourne la meilleure solution voisine trouvée.
+    2-opt intra-route : inverse un segment [i..j] aléatoire dans une route.
     """
-    best_sol = sol
-    best_cost = penalized_cost(sol, inst) if check_tw else total_distance(sol, inst)
+    new_sol = sol.copy()
+    routes_with_4 = [i for i, r in enumerate(new_sol.routes) if len(r.clients) >= 4]
+    if not routes_with_4:
+        return new_sol
 
-    for ri, route in enumerate(sol.routes):
-        n = len(route.clients)
-        if n < 4:
-            continue
-        for i in range(1, n - 1):
-            for j in range(i + 1, n):
-                new_clients = (
-                    route.clients[:i]
-                    + list(reversed(route.clients[i : j + 1]))
-                    + route.clients[j + 1 :]
-                )
-                new_route = Route(new_clients)
-
-                if not route_capacity_ok(new_route, inst):
-                    continue
-
-                new_sol = sol.copy()
-                new_sol.routes[ri] = new_route
-
-                cost = (
-                    penalized_cost(new_sol, inst)
-                    if check_tw
-                    else total_distance(new_sol, inst)
-                )
-                if cost < best_cost:
-                    best_cost = cost
-                    best_sol = new_sol
-
-    return best_sol
+    ri = rng.choice(routes_with_4)
+    n = len(new_sol.routes[ri].clients)
+    i = rng.randint(1, n - 2)
+    j = rng.randint(i + 1, n - 1)
+    new_sol.routes[ri].clients[i : j + 1] = list(
+        reversed(new_sol.routes[ri].clients[i : j + 1])
+    )
+    return new_sol
 
 
-def relocate(sol: Solution, inst: VRPTWInstance, check_tw: bool = True) -> Solution:
+def relocate(
+    sol: Solution, inst: VRPTWInstance, rng, check_tw: bool = True
+) -> Solution:
     """
-    Relocate : déplace un client d'une route vers la meilleure position d'une autre route.
+    Relocate : déplace un client aléatoire d'une route vers une position aléatoire d'une autre route.
     """
-    best_sol = sol
-    best_cost = penalized_cost(sol, inst) if check_tw else total_distance(sol, inst)
+    new_sol = sol.copy()
+    if len(new_sol.routes) < 2:
+        return new_sol
 
-    for ri in range(len(sol.routes)):
-        for ci, cid in enumerate(sol.routes[ri].clients):
-            demand = inst.nodes[cid]["demand"]
+    ri = rng.randint(0, len(new_sol.routes) - 1)
+    if not new_sol.routes[ri].clients:
+        return new_sol
 
-            for rj in range(len(sol.routes)):
-                if ri == rj:
-                    continue
+    ci = rng.randint(0, len(new_sol.routes[ri].clients) - 1)
+    cid = new_sol.routes[ri].clients[ci]
+    demand = inst.nodes[cid]["demand"]
 
-                # Vérifier la capacité de la route destination
-                load_rj = sum(inst.nodes[c]["demand"] for c in sol.routes[rj].clients)
-                if load_rj + demand > inst.capacity:
-                    continue
+    rj_candidates = [
+        j
+        for j in range(len(new_sol.routes))
+        if j != ri
+        and sum(inst.nodes[c]["demand"] for c in new_sol.routes[j].clients) + demand
+        <= inst.capacity
+    ]
+    if not rj_candidates:
+        return new_sol
 
-                for pos in range(len(sol.routes[rj].clients) + 1):
-                    new_sol = sol.copy()
-                    new_sol.routes[ri].clients.pop(ci)
-                    new_sol.routes[rj].clients.insert(pos, cid)
-
-                    # Supprimer routes vides
-                    new_sol.routes = [r for r in new_sol.routes if r.clients]
-
-                    cost = (
-                        penalized_cost(new_sol, inst)
-                        if check_tw
-                        else total_distance(new_sol, inst)
-                    )
-                    if cost < best_cost:
-                        best_cost = cost
-                        best_sol = new_sol
-
-    return best_sol
+    rj = rng.choice(rj_candidates)
+    pos = rng.randint(0, len(new_sol.routes[rj].clients))
+    new_sol.routes[ri].clients.pop(ci)
+    new_sol.routes[rj].clients.insert(pos, cid)
+    new_sol.routes = [r for r in new_sol.routes if r.clients]
+    return new_sol
 
 
-def swap(sol: Solution, inst: VRPTWInstance, check_tw: bool = True) -> Solution:
+def swap(sol: Solution, inst: VRPTWInstance, rng, check_tw: bool = True) -> Solution:
     """
-    Swap : échange deux clients entre deux routes différentes.
+    Swap : échange deux clients aléatoires entre deux routes différentes.
     """
-    best_sol = sol
-    best_cost = penalized_cost(sol, inst) if check_tw else total_distance(sol, inst)
+    new_sol = sol.copy()
+    if len(new_sol.routes) < 2:
+        return new_sol
 
-    for ri in range(len(sol.routes)):
-        for ci, cid_i in enumerate(sol.routes[ri].clients):
-            for rj in range(ri + 1, len(sol.routes)):
-                for cj, cid_j in enumerate(sol.routes[rj].clients):
-                    # Vérifier capacités après échange
-                    load_ri = sum(
-                        inst.nodes[c]["demand"] for c in sol.routes[ri].clients
-                    )
-                    load_rj = sum(
-                        inst.nodes[c]["demand"] for c in sol.routes[rj].clients
-                    )
+    ri, rj = rng.sample(range(len(new_sol.routes)), 2)
+    if not new_sol.routes[ri].clients or not new_sol.routes[rj].clients:
+        return new_sol
 
-                    new_load_ri = (
-                        load_ri
-                        - inst.nodes[cid_i]["demand"]
-                        + inst.nodes[cid_j]["demand"]
-                    )
-                    new_load_rj = (
-                        load_rj
-                        - inst.nodes[cid_j]["demand"]
-                        + inst.nodes[cid_i]["demand"]
-                    )
+    ci = rng.randint(0, len(new_sol.routes[ri].clients) - 1)
+    cj = rng.randint(0, len(new_sol.routes[rj].clients) - 1)
+    cid_i = new_sol.routes[ri].clients[ci]
+    cid_j = new_sol.routes[rj].clients[cj]
 
-                    if new_load_ri > inst.capacity or new_load_rj > inst.capacity:
-                        continue
+    load_ri = sum(inst.nodes[c]["demand"] for c in new_sol.routes[ri].clients)
+    load_rj = sum(inst.nodes[c]["demand"] for c in new_sol.routes[rj].clients)
+    new_load_ri = load_ri - inst.nodes[cid_i]["demand"] + inst.nodes[cid_j]["demand"]
+    new_load_rj = load_rj - inst.nodes[cid_j]["demand"] + inst.nodes[cid_i]["demand"]
 
-                    new_sol = sol.copy()
-                    new_sol.routes[ri].clients[ci] = cid_j
-                    new_sol.routes[rj].clients[cj] = cid_i
+    if new_load_ri <= inst.capacity and new_load_rj <= inst.capacity:
+        new_sol.routes[ri].clients[ci] = cid_j
+        new_sol.routes[rj].clients[cj] = cid_i
 
-                    cost = (
-                        penalized_cost(new_sol, inst)
-                        if check_tw
-                        else total_distance(new_sol, inst)
-                    )
-                    if cost < best_cost:
-                        best_cost = cost
-                        best_sol = new_sol
-
-    return best_sol
+    return new_sol
 
 
 def neighbor_operator(
-    sol: Solution, inst: VRPTWInstance, op, check_tw: bool = True
+    sol: Solution, inst: VRPTWInstance, rng, op=None, check_tw: bool = True
 ) -> Solution:
     """
-    Génère un voisin aléatoire en appliquant un opérateur parmi ["2opt", "relocate", "swap"]
+    Génère un voisin aléatoire en déléguant à l'opérateur choisi.
     """
-    rng = random.Random()
-    op = rng.choice(["2opt", "relocate", "swap"])
-    new_sol = sol.copy()
+    if op is None:
+        op = rng.choice(["2opt", "relocate", "swap"])
 
     if op == "2opt":
-        routes_with_4 = [i for i, r in enumerate(new_sol.routes) if len(r) >= 4]
-        if not routes_with_4:
-            op = "relocate"
-        else:
-            ri = rng.choice(routes_with_4)
-            n = len(new_sol.routes[ri].clients)
-            i = rng.randint(1, n - 2)
-            j = rng.randint(i + 1, n - 1)
-            new_sol.routes[ri].clients[i : j + 1] = reversed(
-                new_sol.routes[ri].clients[i : j + 1]
-            )
-
-    if op == "relocate":
-        if len(new_sol.routes) >= 2:
-            ri = rng.randint(0, len(new_sol.routes) - 1)
-            if new_sol.routes[ri].clients:
-                ci = rng.randint(0, len(new_sol.routes[ri].clients) - 1)
-                cid = new_sol.routes[ri].clients[ci]
-                demand = inst.nodes[cid]["demand"]
-
-                rj_candidates = [
-                    j
-                    for j in range(len(new_sol.routes))
-                    if j != ri
-                    and sum(inst.nodes[c]["demand"] for c in new_sol.routes[j].clients)
-                    + demand
-                    <= inst.capacity
-                ]
-                if rj_candidates:
-                    rj = rng.choice(rj_candidates)
-                    pos = rng.randint(0, len(new_sol.routes[rj].clients))
-                    new_sol.routes[ri].clients.pop(ci)
-                    new_sol.routes[rj].clients.insert(pos, cid)
-                    new_sol.routes = [r for r in new_sol.routes if r.clients]
-
+        return two_opt_intra(sol, inst, rng, check_tw)
+    elif op == "relocate":
+        return relocate(sol, inst, rng, check_tw)
     elif op == "swap":
-        if len(new_sol.routes) >= 2:
-            ri, rj = rng.sample(range(len(new_sol.routes)), 2)
-            if new_sol.routes[ri].clients and new_sol.routes[rj].clients:
-                ci = rng.randint(0, len(new_sol.routes[ri].clients) - 1)
-                cj = rng.randint(0, len(new_sol.routes[rj].clients) - 1)
-                cid_i = new_sol.routes[ri].clients[ci]
-                cid_j = new_sol.routes[rj].clients[cj]
+        return swap(sol, inst, rng, check_tw)
 
-                load_ri = sum(
-                    inst.nodes[c]["demand"] for c in new_sol.routes[ri].clients
-                )
-                load_rj = sum(
-                    inst.nodes[c]["demand"] for c in new_sol.routes[rj].clients
-                )
-                new_load_ri = (
-                    load_ri - inst.nodes[cid_i]["demand"] + inst.nodes[cid_j]["demand"]
-                )
-                new_load_rj = (
-                    load_rj - inst.nodes[cid_j]["demand"] + inst.nodes[cid_i]["demand"]
-                )
+    return sol.copy()
 
-                if new_load_ri <= inst.capacity and new_load_rj <= inst.capacity:
-                    new_sol.routes[ri].clients[ci] = cid_j
-                    new_sol.routes[rj].clients[cj] = cid_i
 
-    return new_sol
+def ox_crossover(
+    parent1: Solution, parent2: Solution, inst: VRPTWInstance, rng
+) -> Solution:
+    """
+    OX Crossover (Order Crossover) adapté au VRP.
+    Travaille sur la séquence de clients (sans les séparateurs).
+    """
+    clients_p1 = parent1.all_clients()
+    clients_p2 = parent2.all_clients()
+    n = len(clients_p1)
+
+    if n < 2:
+        return parent1.copy()
+
+    # Sélectionner un segment de p1
+    i, j = sorted(rng.sample(range(n), 2))
+
+    child_clients = [None] * n
+    child_clients[i : j + 1] = clients_p1[i : j + 1]
+    segment_set = set(clients_p1[i : j + 1])
+
+    # Remplir avec p2 dans l'ordre
+    remaining = [c for c in clients_p2 if c not in segment_set]
+    pos = 0
+    for k in range(n):
+        if child_clients[k] is None:
+            child_clients[k] = remaining[pos]
+            pos += 1
+
+    # Reconstruire les routes avec contrainte de capacité
+    routes = []
+    current_clients = []
+    current_load = 0
+
+    for cid in child_clients:
+        demand = inst.nodes[cid]["demand"]
+        if current_load + demand > inst.capacity:
+            if current_clients:
+                routes.append(Route(current_clients))
+            current_clients = [cid]
+            current_load = demand
+        else:
+            current_clients.append(cid)
+            current_load += demand
+
+    if current_clients:
+        routes.append(Route(current_clients))
+
+    return Solution(routes)
+
+
+def pmx_crossover(
+    parent1: Solution, parent2: Solution, inst: VRPTWInstance, rng
+) -> Solution:
+    """
+    PMX Crossover (Partially Mapped Crossover) adapté au VRP.
+    Préserve les positions absolues des clients dans le segment,
+    et résout les conflits via le mapping p1 <-> p2.
+    """
+    clients_p1 = parent1.all_clients()
+    clients_p2 = parent2.all_clients()
+    n = len(clients_p1)
+    if n < 2:
+        return parent1.copy()
+
+    # Sélectionner un segment
+    i, j = sorted(rng.sample(range(n), 2))
+
+    # Copier le segment de p1
+    child_clients = [None] * n
+    child_clients[i : j + 1] = clients_p1[i : j + 1]
+
+    # Construire le mapping bidirectionnel p1[k] <-> p2[k] dans le segment
+    mapping = {}
+    for k in range(i, j + 1):
+        mapping[clients_p1[k]] = clients_p2[k]
+        mapping[clients_p2[k]] = clients_p1[k]
+
+    # Remplir les positions hors segment avec p2, en résolvant les conflits
+    segment_set = set(clients_p1[i : j + 1])
+    for k in range(n):
+        if child_clients[k] is not None:
+            continue
+        candidate = clients_p2[k]
+        # Suivre la chaîne de mapping jusqu'à trouver un client non conflictuel
+        while candidate in segment_set:
+            candidate = mapping[candidate]
+        child_clients[k] = candidate
+
+    # Reconstruire les routes avec contrainte de capacité (identique à OX)
+    routes = []
+    current_clients = []
+    current_load = 0
+    for cid in child_clients:
+        demand = inst.nodes[cid]["demand"]
+        if current_load + demand > inst.capacity:
+            if current_clients:
+                routes.append(Route(current_clients))
+            current_clients = [cid]
+            current_load = demand
+        else:
+            current_clients.append(cid)
+            current_load += demand
+    if current_clients:
+        routes.append(Route(current_clients))
+    return Solution(routes)
+
+
+def cx_crossover(
+    parent1: Solution, parent2: Solution, inst: VRPTWInstance, rng
+) -> Solution:
+    """
+    CX Crossover (Cycle Crossover) adapté au VRP.
+    Identifie les cycles de positions entre p1 et p2 :
+    - Cycle 1 -> positions héritées de p1
+    - Cycle 2 -> positions héritées de p2
+    - Cycle 3 -> p1, etc. (alternance)
+    Préserve les positions absolues, sans doublon par construction.
+    """
+    clients_p1 = parent1.all_clients()
+    clients_p2 = parent2.all_clients()
+    n = len(clients_p1)
+    if n < 2:
+        return parent1.copy()
+
+    # Index de position : client -> index dans p2
+    pos_in_p2 = {c: idx for idx, c in enumerate(clients_p2)}
+
+    child_clients = [None] * n
+    visited = [False] * n
+    use_p1 = True  # Alterner d'un cycle à l'autre
+
+    for start in range(n):
+        if visited[start]:
+            continue
+
+        # Identifier le cycle complet à partir de 'start'
+        cycle = []
+        k = start
+        while not visited[k]:
+            visited[k] = True
+            cycle.append(k)
+            k = pos_in_p2[clients_p1[k]]  # Suivre le cycle
+
+        # Remplir les positions du cycle depuis p1 ou p2
+        for pos in cycle:
+            child_clients[pos] = clients_p1[pos] if use_p1 else clients_p2[pos]
+        use_p1 = not use_p1  # Alterner pour le prochain cycle
+
+    # Reconstruire les routes avec contrainte de capacité (identique à OX)
+    routes = []
+    current_clients = []
+    current_load = 0
+    for cid in child_clients:
+        demand = inst.nodes[cid]["demand"]
+        if current_load + demand > inst.capacity:
+            if current_clients:
+                routes.append(Route(current_clients))
+            current_clients = [cid]
+            current_load = demand
+        else:
+            current_clients.append(cid)
+            current_load += demand
+    if current_clients:
+        routes.append(Route(current_clients))
+    return Solution(routes)
+
+
+def crossover_operator(
+    parent1: Solution,
+    parent2: Solution,
+    inst: VRPTWInstance,
+    rng,
+    op: str | None = None,
+) -> Solution:
+    """
+    Applique un opérateur de croisement parmi ["ox", "pmx", "cx"].
+    Si op est None, un opérateur est choisi aléatoirement.
+    """
+
+    operators = {
+        "2opt": two_opt_intra,
+        "relocate": relocate,
+        "swap": swap,
+    }
+
+    if op is None:
+        op = rng.choice(list(operators.keys()))
+
+    if op == "ox":
+        return ox_crossover(parent1, parent2, inst, rng)
+    elif op == "pmx":
+        return pmx_crossover(parent1, parent2, inst, rng)
+    elif op == "cx":
+        return cx_crossover(parent1, parent2, inst, rng)
+    else:
+        raise ValueError(f"Opérateur de croisement inconnu : {op}")
