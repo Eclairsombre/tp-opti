@@ -247,6 +247,7 @@ def _(instance, time_windows):
         alpha=0.995,
         max_iter=5000,
         seed=42,
+        op="swap"
     )
 
     print(f"  Distance: {result_sa['distance']:.2f}")
@@ -277,7 +278,9 @@ def _(instance, time_windows):
         check_tw=time_windows.value,
         pop_size=30,
         generations=100,
-        seed=42
+        seed=42,
+        op_mutate="swap",
+        op_cross="ox"
     )
 
     print(f"  Distance: {result_genetic['distance']:.2f}")
@@ -297,6 +300,11 @@ def _(instance, time_windows):
             mo.ui.plotly(fig_genetic),
         ]
     )
+    return
+
+
+@app.cell
+def _():
     return
 
 

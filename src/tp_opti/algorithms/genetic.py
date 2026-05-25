@@ -96,7 +96,7 @@ def genetic_algorithm(
       - elite_size  : nombre d'élites conservées par génération
       - seed : seed pour la génération aléatoire
       - op_mutate : opérateur de voisinage pour la mutation parmi ["2opt", "relocate", "swap"]
-      - op_cross : opérateur de voisinage pour le croisement parmi ["ox"]
+      - op_cross : opérateur de voisinage pour le croisement parmi ["ox, cx"]
     """
     rng = random.Random(seed)
 
