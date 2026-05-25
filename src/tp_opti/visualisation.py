@@ -43,7 +43,7 @@ def plot_routes(solution, instance, title="Routes", ax=None):
     return fig
 
 
-def plot_routes_interactive(solution, instance, title="Routes"):
+def plot_routes_interactive(solution, instance, title="Routes", subtitle=None):
     fig = go.Figure()
 
     colors = [
@@ -253,7 +253,11 @@ def plot_routes_interactive(solution, instance, title="Routes"):
     ]
 
     fig.update_layout(
-        title=title,
+        title=dict(
+            text=f"{title}<br><sup>{subtitle or ''}</sup>",
+            x=0.5,
+            xanchor="center",
+        ),
         plot_bgcolor="white",
         paper_bgcolor="white",
         xaxis=dict(

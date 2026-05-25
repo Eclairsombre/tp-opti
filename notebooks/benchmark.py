@@ -24,7 +24,7 @@ with app.setup:
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    # VRPTW – Benchmark
+    # VRPTW - Benchmark
     """)
     return
 
@@ -48,7 +48,7 @@ def _():
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    ## ① Configuration globale
+    ## Configuration globale
     """)
     return
 
@@ -63,7 +63,7 @@ def _(all_datasets):
     ui_tw = mo.ui.switch(value=True, label="Fenêtres de temps (TW)")
     ui_repeats = mo.ui.slider(1, 10, value=3, step=1, label="Répétitions par dataset")
     ui_algo = mo.ui.dropdown(
-        options=["SA (Recuit Simulé)", "Genetic (Algorithme Génétique)"],
+        options=["SA (Recuit Simulé)", "GA (Algorithme Génétique)"],
         value="SA (Recuit Simulé)",
         label="Algorithme",
     )
@@ -80,7 +80,7 @@ def _(all_datasets):
 @app.cell(hide_code=True)
 def _(ui_algo):
     _is_sa = "SA" in ui_algo.value
-    mo.md("## ② Paramètres — Recuit Simulé") if _is_sa else mo.md("")
+    mo.md("## Paramètres - Recuit Simulé") if _is_sa else mo.md("")
     return
 
 
@@ -113,7 +113,7 @@ def _(ui_algo):
 @app.cell(hide_code=True)
 def _(ui_algo):
     _is_ga = "Genetic" in ui_algo.value
-    mo.md("## ② Paramètres — Algorithme Génétique") if _is_ga else mo.md("")
+    mo.md("## Paramètres - Algorithme Génétique") if _is_ga else mo.md("")
     return
 
 
@@ -160,7 +160,7 @@ def _(ui_algo):
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    ## ③ Lancement
+    ## Lancement
     """)
     return
 
@@ -205,7 +205,7 @@ def _(
         _inst = all_datasets[_ds_name]
         _runs = []
         for _rep in range(_n_rep):
-            _seed = 42 + _rep
+            _seed = 25565 + _rep
             if _is_sa:
                 _r = simulated_annealing(
                     _inst,
@@ -242,7 +242,7 @@ def _(
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    ## ④ Résultats — Tableau récapitulatif
+    ## Résultats - Tableau récapitulatif
     """)
     return
 
@@ -279,14 +279,56 @@ def _(all_results):
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    ## ⑤ Meilleure solution par dataset
+    ## Meilleure solution par dataset
     """)
     return
 
 
 @app.cell(hide_code=True)
-def _(all_datasets, all_results):
+def _(
+    all_datasets,
+    all_results,
+    ui_algo,
+    ui_ga_elite,
+    ui_ga_gen,
+    ui_ga_mut_rate,
+    ui_ga_op_cross,
+    ui_ga_op_mutate,
+    ui_ga_pop,
+    ui_ga_tourn,
+    ui_repeats,
+    ui_sa_T0,
+    ui_sa_alpha,
+    ui_sa_max_iter,
+    ui_sa_op,
+    ui_tw,
+):
     mo.stop(not all_results)
+
+    _is_sa = "SA" in ui_algo.value
+
+    # Texte paramètres affiché sous titre
+    if _is_sa:
+            _params_txt = (
+                f"T0={ui_sa_T0.value} | "
+                f"alpha={ui_sa_alpha.value} | "
+                f"max_iter={ui_sa_max_iter.value} | "
+                f"op={ui_sa_op.value} | "
+                f"repeats={ui_repeats.value} | "
+                f"TW={ui_tw.value}"
+            )
+    else:
+        _params_txt = (
+            f"pop={ui_ga_pop.value} | "
+            f"gen={ui_ga_gen.value} | "
+            f"tournament={ui_ga_tourn.value} | "
+            f"mutation={ui_ga_mut_rate.value} | "
+            f"elite={ui_ga_elite.value} | "
+            f"mut_op={ui_ga_op_mutate.value} | "
+            f"cross_op={ui_ga_op_cross.value} | "
+            f"repeats={ui_repeats.value} | "
+            f"TW={ui_tw.value}"
+        )
 
     _tabs = {}
     for _ds, _runs in all_results.items():
@@ -295,7 +337,8 @@ def _(all_datasets, all_results):
         _fig = plot_routes_interactive(
             _best["solution"],
             _inst,
-            f"{_best['algorithm']} — {_ds} (dist={_best['distance']:.2f})",
+            f"{_best['algorithm']} - {_ds} (distance={_best['distance']:.2f})",
+            _params_txt
         )
         _tabs[_ds] = mo.ui.plotly(_fig)
 
@@ -306,22 +349,39 @@ def _(all_datasets, all_results):
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    ## ⑥ Courbes de convergence
+    ## Courbes de convergence
     """)
     return
 
 
 @app.cell(hide_code=True)
-def _(all_results, ui_algo):
+def _(
+    all_results,
+    ui_algo,
+    ui_ga_elite,
+    ui_ga_gen,
+    ui_ga_mut_rate,
+    ui_ga_op_cross,
+    ui_ga_op_mutate,
+    ui_ga_pop,
+    ui_ga_tourn,
+    ui_repeats,
+    ui_sa_T0,
+    ui_sa_alpha,
+    ui_sa_max_iter,
+    ui_sa_op,
+    ui_tw,
+):
     mo.stop(not all_results)
 
     _is_sa = "SA" in ui_algo.value
-    _x_label = "Itération (×100)" if _is_sa else "Génération"
+    _x_label = "Itération" if _is_sa else "Génération"
+    _title = "Coût en fonction des itérations" if _is_sa else "Coût en fonction des générations"
 
     _fig = make_subplots(
         rows=1,
         cols=2,
-        subplot_titles=("Coût courant (moy. des runs)", "Meilleur coût trouvé"),
+        subplot_titles=("Coût courant", "Meilleur coût trouvé"),
         shared_yaxes=False,
     )
 
@@ -335,6 +395,29 @@ def _(all_results, ui_algo):
         "#FF6692",
         "#B6E880",
     ]
+
+    # Texte paramètres affiché sous titre
+    if _is_sa:
+            _params_txt = (
+                f"T0={ui_sa_T0.value} | "
+                f"alpha={ui_sa_alpha.value} | "
+                f"max_iter={ui_sa_max_iter.value} | "
+                f"op={ui_sa_op.value} | "
+                f"repeats={ui_repeats.value} | "
+                f"TW={ui_tw.value}"
+            )
+    else:
+        _params_txt = (
+            f"pop={ui_ga_pop.value} | "
+            f"gen={ui_ga_gen.value} | "
+            f"tournament={ui_ga_tourn.value} | "
+            f"mutation={ui_ga_mut_rate.value} | "
+            f"elite={ui_ga_elite.value} | "
+            f"mut_op={ui_ga_op_mutate.value} | "
+            f"cross_op={ui_ga_op_cross.value} | "
+            f"repeats={ui_repeats.value} | "
+            f"TW={ui_tw.value}"
+        )
 
     for _i, (_ds, _runs) in enumerate(all_results.items()):
         _color = _palette[_i % len(_palette)]
@@ -359,7 +442,7 @@ def _(all_results, ui_algo):
                 x=_xs,
                 y=_h_mean.tolist(),
                 mode="lines",
-                name=f"{_ds} – courant",
+                name=f"{_ds} (courant)",
                 line=dict(color=_color, width=1, dash="dot"),
                 opacity=0.6,
                 legendgroup=_ds,
@@ -390,7 +473,7 @@ def _(all_results, ui_algo):
                 x=_xsb,
                 y=_hb_mean.tolist(),
                 mode="lines",
-                name=f"{_ds} – best",
+                name=f"{_ds} (meilleur)",
                 line=dict(color=_color, width=2),
                 legendgroup=_ds,
             ),
@@ -401,10 +484,26 @@ def _(all_results, ui_algo):
     _fig.update_xaxes(title_text=_x_label)
     _fig.update_yaxes(title_text="Coût", col=1)
     _fig.update_layout(
-        height=420,
-        title_text="Convergence (moyenne sur les répétitions, ±1σ sur best)",
+        title=dict(
+            text=f"{_title}<br><sup>{_params_txt or ''}</sup>",
+            x=0.5,
+        ),
+        height=500,
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3),
+        # fond
+        template="plotly_white",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        # légende plus basse
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.35,
+            xanchor="center",
+            x=0.5,
+        ),
+        # marge bas pour laisser place légende
+        margin=dict(b=120),
     )
 
     mo.ui.plotly(_fig)
@@ -414,10 +513,9 @@ def _(all_results, ui_algo):
 @app.cell(hide_code=True)
 def _():
     mo.md("""
-    ## ⑦ Analyse de sensibilité — 1 paramètre
+    ## Analyse de sensibilité - 1 paramètre
 
     Les autres paramètres sont **fixés aux valeurs des sliders ci-dessus**.
-    Choisissez le paramètre à sweeper, sa plage, et lancez.
     """)
     return
 
@@ -440,7 +538,7 @@ def _(ui_algo):
     ui_sweep_param = mo.ui.dropdown(
         options=_param_options,
         value=_param_options[0],
-        label="Paramètre à sweeper",
+        label="Paramètre à balayer",
     )
     ui_sweep_n = mo.ui.slider(3, 15, value=6, step=1, label="Nombre de valeurs testées")
 
@@ -476,7 +574,7 @@ def _(ui_algo, ui_sweep_param):
 
 @app.cell(hide_code=True)
 def _():
-    sweep_btn = mo.ui.run_button(label="▶ Lancer le sweep")
+    sweep_btn = mo.ui.run_button(label="▶ Lancer le balayage")
     sweep_btn
     return (sweep_btn,)
 
@@ -506,7 +604,7 @@ def _(
     ui_tw,
 ):
     mo.stop(
-        not sweep_btn.value, mo.md("*Appuyez sur 'Lancer le sweep' pour démarrer.*")
+        not sweep_btn.value, mo.md("*Appuyez sur 'Lancer le balayage' pour démarrer.*")
     )
 
     _is_sa = "SA" in ui_algo.value
@@ -580,16 +678,35 @@ def _(
 
     sweep_results = _sweep_results
     mo.md(
-        f"✅ Sweep terminé — {len(_sweep_vals)} valeurs × {len(_selected)} dataset(s) × {_n_rep} répétition(s)"
+        f"✅ Sweep terminé - {len(_sweep_vals)} valeurs × {len(_selected)} dataset(s) × {_n_rep} répétition(s)"
     )
     return (sweep_results,)
 
 
 @app.cell(hide_code=True)
-def _(sweep_results, ui_sweep_param):
+def _(
+    sweep_results,
+    ui_algo,
+    ui_ga_elite,
+    ui_ga_gen,
+    ui_ga_mut_rate,
+    ui_ga_op_cross,
+    ui_ga_op_mutate,
+    ui_ga_pop,
+    ui_ga_tourn,
+    ui_repeats,
+    ui_sa_T0,
+    ui_sa_alpha,
+    ui_sa_max_iter,
+    ui_sa_op,
+    ui_sweep_param,
+    ui_tw,
+):
     mo.stop(not sweep_results)
 
     _param = ui_sweep_param.value
+    _is_sa = "SA" in ui_algo.value
+
     _palette = [
         "#636EFA",
         "#EF553B",
@@ -601,17 +718,48 @@ def _(sweep_results, ui_sweep_param):
         "#B6E880",
     ]
 
+    # Texte paramètres affiché sous titre
+    if _is_sa:
+        _params = {
+            "T0": ui_sa_T0.value,
+            "alpha": ui_sa_alpha.value,
+            "max_iter": ui_sa_max_iter.value,
+            "op": ui_sa_op.value,
+            "repeats": ui_repeats.value,
+            "TW": ui_tw.value,
+        }
+    else:
+        _params = {
+            "pop_size": ui_ga_pop.value,
+            "generations": ui_ga_gen.value,
+            "tournament_k": ui_ga_tourn.value,
+            "mutation_rate": ui_ga_mut_rate.value,
+            "elite_size": ui_ga_elite.value,
+            "op_mutate": ui_ga_op_mutate.value,
+            "op_cross": ui_ga_op_cross.value,
+            "repeats": ui_repeats.value,
+            "TW": ui_tw.value,
+        }
+
+    # Supprimer paramètre sweep du texte
+    _params.pop(_param, None)
+
+    _params_txt = " | ".join(
+        f"{k}={v}" for k, v in _params.items()
+    )
+
     # Regrouper par dataset
     _datasets_seen = list(dict.fromkeys(r["dataset"] for r in sweep_results))
 
     _fig = make_subplots(
         specs=[[{"secondary_y": True}]],
-        subplot_titles=(f"Qualité & Temps en fonction de {_param}",),
     )
 
     for _i, _ds in enumerate(_datasets_seen):
         _color = _palette[_i % len(_palette)]
+
         _rows = [r for r in sweep_results if r["dataset"] == _ds]
+
         _xs = [r["param_val"] for r in _rows]
         _yd = [r["dist_mean"] for r in _rows]
         _yd_std = [r["dist_std"] for r in _rows]
@@ -633,7 +781,7 @@ def _(sweep_results, ui_sweep_param):
             secondary_y=False,
         )
 
-        # Distance (axe gauche)
+        # Distance
         _fig.add_trace(
             go.Scatter(
                 x=_xs,
@@ -646,7 +794,7 @@ def _(sweep_results, ui_sweep_param):
             secondary_y=False,
         )
 
-        # Temps (axe droit, tirets)
+        # Temps
         _fig.add_trace(
             go.Scatter(
                 x=_xs,
@@ -660,12 +808,39 @@ def _(sweep_results, ui_sweep_param):
         )
 
     _fig.update_xaxes(title_text=_param)
-    _fig.update_yaxes(title_text="Distance moyenne", secondary_y=False)
-    _fig.update_yaxes(title_text="Temps moyen (s)", secondary_y=True)
+
+    _fig.update_yaxes(
+        title_text="Distance moyenne",
+        secondary_y=False,
+    )
+
+    _fig.update_yaxes(
+        title_text="Temps moyen (s)",
+        secondary_y=True,
+    )
+
     _fig.update_layout(
+        title=dict(
+            text=f"Qualité et Temps en fonction de {_param}<br><sup>{_params_txt or ''}</sup>",
+            x=0.5,
+            xanchor="center",
+        ),
         height=500,
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3),
+        template="plotly_white",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.35,
+            xanchor="center",
+            x=0.5,
+        ),
+        margin=dict(
+            t=120,
+            b=120,
+        ),
     )
 
     mo.ui.plotly(_fig)
