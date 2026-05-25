@@ -3,7 +3,7 @@
 import marimo
 
 __generated_with = "0.23.5"
-app = marimo.App(width="columns", app_title="VRPTW - Operators")
+app = marimo.App(width="medium", app_title="VRPTW - Crossover operators")
 
 with app.setup:
     import glob
@@ -16,14 +16,7 @@ with app.setup:
     from tp_opti.model import VRPTWInstance
     from tp_opti.parsing import parse_vrp_file
     from tp_opti.utils.operators import (
-        neighbor_operator,
-        relocate,
-        swap,
-        two_opt_intra,
-    )
-    from tp_opti.utils.validators import (
-        solution_total_violation,
-        total_distance,
+        crossover_operator,
     )
     from tp_opti.visualisation import plot_routes_interactive
 
@@ -84,40 +77,50 @@ def _(dataset):
 
 @app.cell(hide_code=True)
 def _(instance, time_windows):
-    initial_solution = random_solution(
+    initial_solution_1 = random_solution(
         instance,
         check_tw=time_windows.value,
     )
-    return (initial_solution,)
-
-
-@app.cell(hide_code=True)
-def _(initial_solution, instance):
-    fig_before = plot_routes_interactive(
-        initial_solution,
+    initial_solution_2 = random_solution(
         instance,
-        "Routes avant opérateur",
+        check_tw=time_windows.value,
+    )
+
+    fig_before_1 = plot_routes_interactive(
+        initial_solution_1,
+        instance,
+        "Routes avant opérateur (parent 1)",
+    )
+
+    fig_before_2 = plot_routes_interactive(
+        initial_solution_2,
+        instance,
+        "Routes avant opérateur (parent 2)",
     )
 
     mo.vstack(
         [
-            mo.md("## Routes avant opérateur"),
-            mo.ui.plotly(fig_before),
+            mo.md("## Routes avant opérateur (parent 2)"),
+            mo.hstack(
+                [
+                    mo.ui.plotly(fig_before_1),
+                    mo.ui.plotly(fig_before_2),
+                ]
+            ),
         ]
     )
-    return
+    return initial_solution_1, initial_solution_2
 
 
 @app.cell(hide_code=True)
 def _():
     operator_dropdown = mo.ui.dropdown(
-            options={
-                "two_opt_intra": "2opt",
-                "relocate": "relocate",
-                "swap": "swap",
-            },
-            value="two_opt_intra"
-        )
+        options={
+            "ox": "ox",
+            "cx": "cx",
+        },
+        value="ox",
+    )
     return (operator_dropdown,)
 
 
@@ -130,11 +133,24 @@ def _(operator_dropdown):
 
 
 @app.cell(hide_code=True)
-def _(initial_solution, instance, operator_dropdown, time_windows):
+def _(
+    initial_solution_1,
+    initial_solution_2,
+    instance,
+    operator_dropdown,
+    time_windows,
+):
     operator_name = operator_dropdown.value
     rng = random.Random()
 
-    new_solution = neighbor_operator(initial_solution, instance, rng, op=operator_name, check_tw=time_windows.value)
+    new_solution = crossover_operator(
+        initial_solution_1,
+        initial_solution_2,
+        instance,
+        rng,
+        op=operator_name,
+        check_tw=time_windows.value,
+    )
     return (new_solution,)
 
 

@@ -157,63 +157,6 @@ def ox_crossover(
     return Solution(routes)
 
 
-def pmx_crossover(
-    parent1: Solution, parent2: Solution, inst: VRPTWInstance, rng
-) -> Solution:
-    """
-    PMX Crossover (Partially Mapped Crossover) adapté au VRP.
-    Préserve les positions absolues des clients dans le segment,
-    et résout les conflits via le mapping p1 <-> p2.
-    """
-    clients_p1 = parent1.all_clients()
-    clients_p2 = parent2.all_clients()
-    n = len(clients_p1)
-    if n < 2:
-        return parent1.copy()
-
-    # Sélectionner un segment
-    i, j = sorted(rng.sample(range(n), 2))
-
-    # Copier le segment de p1
-    child_clients = [None] * n
-    child_clients[i : j + 1] = clients_p1[i : j + 1]
-
-    # Construire le mapping bidirectionnel p1[k] <-> p2[k] dans le segment
-    mapping = {}
-    for k in range(i, j + 1):
-        mapping[clients_p1[k]] = clients_p2[k]
-        mapping[clients_p2[k]] = clients_p1[k]
-
-    # Remplir les positions hors segment avec p2, en résolvant les conflits
-    segment_set = set(clients_p1[i : j + 1])
-    for k in range(n):
-        if child_clients[k] is not None:
-            continue
-        candidate = clients_p2[k]
-        # Suivre la chaîne de mapping jusqu'à trouver un client non conflictuel
-        while candidate in segment_set:
-            candidate = mapping[candidate]
-        child_clients[k] = candidate
-
-    # Reconstruire les routes avec contrainte de capacité (identique à OX)
-    routes = []
-    current_clients = []
-    current_load = 0
-    for cid in child_clients:
-        demand = inst.nodes[cid]["demand"]
-        if current_load + demand > inst.capacity:
-            if current_clients:
-                routes.append(Route(current_clients))
-            current_clients = [cid]
-            current_load = demand
-        else:
-            current_clients.append(cid)
-            current_load += demand
-    if current_clients:
-        routes.append(Route(current_clients))
-    return Solution(routes)
-
-
 def cx_crossover(
     parent1: Solution, parent2: Solution, inst: VRPTWInstance, rng
 ) -> Solution:
@@ -274,32 +217,33 @@ def cx_crossover(
     return Solution(routes)
 
 
+def repair_time_windows(sol: Solution, inst: VRPTWInstance, rng) -> Solution:
+    """
+    Tente de réparer les violations de time windows en réordonnant
+    les clients dans chaque route par earliest due time.
+    """
+    new_sol = sol.copy()
+    for route in new_sol.routes:
+        route.clients.sort(key=lambda cid: inst.nodes[cid]["ready_time"])
+    return new_sol
+
+
 def crossover_operator(
     parent1: Solution,
     parent2: Solution,
     inst: VRPTWInstance,
     rng,
     op: str | None = None,
+    check_tw: bool = False,
 ) -> Solution:
-    """
-    Applique un opérateur de croisement parmi ["ox", "pmx", "cx"].
-    Si op est None, un opérateur est choisi aléatoirement.
-    """
-
-    operators = {
-        "2opt": two_opt_intra,
-        "relocate": relocate,
-        "swap": swap,
-    }
-
     if op is None:
-        op = rng.choice(list(operators.keys()))
+        op = rng.choice(["ox", "cx"])
 
     if op == "ox":
-        return ox_crossover(parent1, parent2, inst, rng)
-    elif op == "pmx":
-        return pmx_crossover(parent1, parent2, inst, rng)
+        child = ox_crossover(parent1, parent2, inst, rng)
     elif op == "cx":
-        return cx_crossover(parent1, parent2, inst, rng)
+        child = cx_crossover(parent1, parent2, inst, rng)
     else:
         raise ValueError(f"Opérateur de croisement inconnu : {op}")
+
+    return repair_time_windows(child, inst, rng) if check_tw else child
