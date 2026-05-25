@@ -11,7 +11,7 @@ with app.setup:
     import marimo as mo
     import pandas as pd
 
-    from tp_opti.algorithms import greedy_solution, random_solution, simulated_annealing
+    from tp_opti.algorithms import greedy_solution, random_solution, simulated_annealing, genetic_algorithm
     from tp_opti.model import VRPTWInstance
     from tp_opti.parsing import parse_vrp_file
     from tp_opti.utils.validators import (
@@ -265,6 +265,36 @@ def _(instance, time_windows):
         [
             mo.md("## Visualisation solution recuit-simulé"),
             mo.ui.plotly(fig_sa),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(instance, time_windows):
+    result_genetic = genetic_algorithm(
+        instance,
+        check_tw=time_windows.value,
+        pop_size=30,
+        generations=100,
+        seed=42
+    )
+
+    print(f"  Distance: {result_genetic['distance']:.2f}")
+    print(f"  Violation Time Windows : {result_genetic['violation']:.4f}")
+    print(f"  Routes : {result_genetic['num_routes']}")
+    print(f"  Temps : {result_genetic['time']:.2f}s")
+    print(f"  Solutions générées : {result_genetic['nb_generated']}")
+    print(
+        f"  Valide : {solution_is_valid(result_genetic['solution'], instance, check_tw=time_windows.value)}"
+    )
+
+    fig_genetic = plot_routes_interactive(result_genetic["solution"], instance, "Solution recuit-simulé")
+
+    mo.vstack(
+        [
+            mo.md("## Visualisation solution recuit-simulé"),
+            mo.ui.plotly(fig_genetic),
         ]
     )
     return
