@@ -5,15 +5,15 @@
 
 ## Run
 
-Pour lancer le projet Jupyter avec uv:
+Pour lancer le projet Jupyter avec uv :
 uv run jupyter lab
 
 ```bash
 uv run jupyter lab
 ```
 
-Pour lancer le projet avec Marimo:
+Pour lancer le projet avec Marimo :
 
 ```bash
-marimo edit notebooks/operators.py --watch
+marimo edit notebooks/benchmark.py --watch
 ```

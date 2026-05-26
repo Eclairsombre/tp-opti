@@ -112,14 +112,14 @@ def _(ui_algo):
 
 @app.cell(hide_code=True)
 def _(ui_algo):
-    _is_ga = "Genetic" in ui_algo.value
+    _is_ga = "GA (Algorithme Génétique)" in ui_algo.value
     mo.md("## Paramètres - Algorithme Génétique") if _is_ga else mo.md("")
     return
 
 
 @app.cell(hide_code=True)
 def _(ui_algo):
-    _is_ga = "Genetic" in ui_algo.value
+    _is_ga = "GA (Algorithme Génétique)" in ui_algo.value
 
     ui_ga_pop = mo.ui.slider(5, 200, value=30, step=5, label="pop_size")
     ui_ga_gen = mo.ui.slider(10, 2000, value=200, step=10, label="generations")
