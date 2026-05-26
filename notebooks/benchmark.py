@@ -123,9 +123,9 @@ def _(ui_algo):
 def _(ui_algo):
     _is_ga = "GA (Algorithme Génétique)" in ui_algo.value
 
-    ui_ga_pop = mo.ui.slider(5, 200, value=30, step=5, label="pop_size")
+    ui_ga_pop = mo.ui.slider(5, 500, value=75, step=5, label="pop_size")
     ui_ga_gen = mo.ui.slider(10, 2000, value=200, step=10, label="generations")
-    ui_ga_tourn = mo.ui.slider(2, 20, value=5, step=1, label="tournament_k")
+    ui_ga_tourn = mo.ui.slider(1, 20, value=5, step=1, label="tournament_k")
     ui_ga_mut_rate = mo.ui.slider(
         0.01, 0.8, value=0.2, step=0.01, label="mutation_rate"
     )
@@ -564,7 +564,7 @@ def _(ui_algo, ui_sweep_param):
         "n2": (10,100, False),
         "pop_size": (5, 200, True),
         "generations": (10, 2000, True),
-        "tournament_k": (2, 20, True),
+        "tournament_k": (1, 20, True),
         "mutation_rate": (0.01, 0.80, False),
         "elite_size": (1, 10, True),
     }
