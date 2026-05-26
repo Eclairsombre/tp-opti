@@ -94,7 +94,9 @@ def _(ui_algo):
     ui_sa_alpha = mo.ui.slider(
         0.900, 0.9999, value=0.995, step=0.0005, label="alpha (refroidissement)"
     )
-    ui_sa_max_iter = mo.ui.slider(500, 50000, value=10000, step=500, label="max_iter")
+    ui_sa_max_iter = mo.ui.slider(500, 1000000, value=10000, step=500, label="max_iter")
+    ui_sa_n2 = mo.ui.slider(1, 100, value=10, step=10, label="n2")
+
     ui_sa_op = mo.ui.dropdown(
         options=["2opt", "relocate", "swap"],
         value="2opt",
@@ -103,11 +105,11 @@ def _(ui_algo):
 
     mo.vstack(
         [
-            mo.hstack([ui_sa_T0, ui_sa_alpha], justify="start", gap=2),
+            mo.hstack([ui_sa_T0, ui_sa_alpha, ui_sa_n2], justify="start", gap=2),
             mo.hstack([ui_sa_max_iter, ui_sa_op], justify="start", gap=2),
         ]
     ) if _is_sa else mo.md("*(paramètres SA non actifs)*")
-    return ui_sa_T0, ui_sa_alpha, ui_sa_max_iter, ui_sa_op
+    return ui_sa_T0, ui_sa_alpha, ui_sa_max_iter, ui_sa_n2, ui_sa_op
 
 
 @app.cell(hide_code=True)
@@ -189,6 +191,7 @@ def _(
     ui_sa_T0,
     ui_sa_alpha,
     ui_sa_max_iter,
+    ui_sa_n2,
     ui_sa_op,
     ui_tw,
 ):
@@ -213,6 +216,7 @@ def _(
                     T0=ui_sa_T0.value,
                     alpha=ui_sa_alpha.value,
                     max_iter=ui_sa_max_iter.value,
+                    n2=ui_sa_n2.value,
                     seed=_seed,
                     op=ui_sa_op.value,
                 )
@@ -375,7 +379,7 @@ def _(
     mo.stop(not all_results)
 
     _is_sa = "SA" in ui_algo.value
-    _x_label = "Itération" if _is_sa else "Génération"
+    _x_label = "Itération (Centaine)" if _is_sa else "Génération"
     _title = "Coût en fonction des itérations" if _is_sa else "Coût en fonction des générations"
 
     _fig = make_subplots(
@@ -524,7 +528,7 @@ def _():
 def _(ui_algo):
     _is_sa = "SA" in ui_algo.value
 
-    _sa_params = ["T0", "alpha", "max_iter"]
+    _sa_params = ["T0", "alpha", "max_iter","n2"]
     _ga_params = [
         "pop_size",
         "generations",
@@ -553,9 +557,11 @@ def _(ui_algo, ui_sweep_param):
 
     # Plages par défaut pour chaque paramètre
     _ranges = {
-        "T0": (10, 2000, False),
+        "T0": (10, 4000
+               , False),
         "alpha": (0.90, 0.9999, False),
-        "max_iter": (500, 50000, False),
+        "max_iter": (500, 1000000, False),
+        "n2": (10,100, False),
         "pop_size": (5, 200, True),
         "generations": (10, 2000, True),
         "tournament_k": (2, 20, True),
@@ -596,6 +602,7 @@ def _(
     ui_sa_T0,
     ui_sa_alpha,
     ui_sa_max_iter,
+    ui_sa_n2,
     ui_sa_op,
     ui_sweep_max,
     ui_sweep_min,
@@ -617,6 +624,7 @@ def _(
     # Génération des valeurs à tester
     _is_int_param = _param in [
         "max_iter",
+        "n2",
         "pop_size",
         "generations",
         "tournament_k",
@@ -634,6 +642,7 @@ def _(
         T0=ui_sa_T0.value,
         alpha=ui_sa_alpha.value,
         max_iter=ui_sa_max_iter.value,
+        n2=ui_sa_n2.value,
         op=ui_sa_op.value,
     )
     _base_ga = dict(
@@ -698,6 +707,7 @@ def _(
     ui_sa_T0,
     ui_sa_alpha,
     ui_sa_max_iter,
+    ui_sa_n2,
     ui_sa_op,
     ui_sweep_param,
     ui_tw,
@@ -724,6 +734,7 @@ def _(
             "T0": ui_sa_T0.value,
             "alpha": ui_sa_alpha.value,
             "max_iter": ui_sa_max_iter.value,
+            "n2":ui_sa_n2.value,
             "op": ui_sa_op.value,
             "repeats": ui_repeats.value,
             "TW": ui_tw.value,
