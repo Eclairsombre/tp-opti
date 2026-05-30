@@ -94,8 +94,8 @@ def _(ui_algo):
     ui_sa_alpha = mo.ui.slider(
         0.900, 0.9999, value=0.995, step=0.0005, label="alpha (refroidissement)"
     )
-    ui_sa_max_iter = mo.ui.slider(500, 1000000, value=10000, step=500, label="max_iter")
-    ui_sa_n2 = mo.ui.slider(1, 100, value=10, step=10, label="n2")
+    ui_sa_max_iter = mo.ui.slider(500, 100000, value=10000, step=1000, label="max_iter")
+    ui_sa_n2 = mo.ui.slider(1, 100, value=1, step=10, label="n2")
 
     ui_sa_op = mo.ui.dropdown(
         options=["2opt", "relocate", "swap"],
@@ -559,7 +559,7 @@ def _(ui_algo, ui_sweep_param):
     _ranges = {
         "T0": (10, 4000
                , False),
-        "alpha": (0.90, 0.9999, False),
+        "alpha": (0.5, 0.9999, False),
         "max_iter": (500, 1000000, False),
         "n2": (10,100, False),
         "pop_size": (5, 200, True),

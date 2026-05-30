@@ -1,19 +1,36 @@
-## Requirements
+## Pré-Requis
 
 - Python
 - uv
 
-## Run
+## Mise en place
 
-Pour lancer le projet Jupyter avec uv :
-uv run jupyter lab
+Après avoir installé uv, pour synchroniser les dépendances :
 
 ```bash
-uv run jupyter lab
+uv sync
 ```
+
+Marimo devrait être alors disponible via le terminal.
+
+## Lancement
 
 Pour lancer le projet avec Marimo :
 
+Benchmark sur un algorithme :
+
 ```bash
 marimo edit notebooks/benchmark.py --watch
+```
+
+Comparaison des deux algorithmes :
+
+```bash
+marimo edit notebooks/comparaison.py --watch
+```
+
+Visualisation des différentes solutions :
+
+```bash
+marimo edit notebooks/main.py --watch
 ```
